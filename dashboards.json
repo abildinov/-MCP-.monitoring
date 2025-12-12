@@ -1,0 +1,142 @@
+{
+  "dashboards": [
+    {
+      "id": null,
+      "uid": "docker-logs",
+      "title": "Docker Logs Monitoring",
+      "panels": [
+        {
+          "type": "table",
+          "title": "Logs by Container",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [
+            {
+              "expr": "{container_name=~\"$container\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Errors over time",
+          "datasource": {"type": "loki", "uid": "loki"},
+          "targets": [
+            {
+              "expr": "count_over_time({container_name=~\"$container\"} |= \"error\" [5m])",
+              "refId": "A"
+            }
+          ]
+        }
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "container",
+            "label": "Container",
+            "type": "query",
+            "datasource": {"type": "loki", "uid": "loki"},
+            "query": "label_values(container_name)",
+            "refresh": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": null,
+      "uid": "docker-cadvisor",
+      "title": "Docker Monitoring (cAdvisor)",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "CPU Usage",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "rate(container_cpu_usage_seconds_total{container_name=~\"$container\"}[1m])",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Memory Usage",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "container_memory_usage_bytes{container_name=~\"$container\"}",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Network IO",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "rate(container_network_receive_bytes_total{container_name=~\"$container\"}[1m])",
+              "refId": "A"
+            },
+            {
+              "expr": "rate(container_network_transmit_bytes_total{container_name=~\"$container\"}[1m])",
+              "refId": "B"
+            }
+          ]
+        }
+      ],
+      "templating": {
+        "list": [
+          {
+            "name": "container",
+            "label": "Container",
+            "type": "query",
+            "datasource": {"type": "prometheus", "uid": "prometheus"},
+            "query": "label_values(container_cpu_usage_seconds_total, container_name)",
+            "refresh": 1
+          }
+        ]
+      }
+    },
+    {
+      "id": null,
+      "uid": "node-monitor",
+      "title": "System Monitoring (Node Exporter)",
+      "panels": [
+        {
+          "type": "timeseries",
+          "title": "Host CPU Load",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "avg(rate(node_cpu_seconds_total{mode=\"user\"}[1m]))",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Host Memory Usage",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "node_memory_Active_bytes",
+              "refId": "A"
+            }
+          ]
+        },
+        {
+          "type": "timeseries",
+          "title": "Disk Usage",
+          "datasource": {"type": "prometheus", "uid": "prometheus"},
+          "targets": [
+            {
+              "expr": "node_filesystem_size_bytes{fstype!=\"\"} - node_filesystem_free_bytes{fstype!=\"\"}",
+              "refId": "A"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
+
