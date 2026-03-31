@@ -117,57 +117,6 @@ Loki → Grafana (logs)
 Prometheus alerts → Grafana (alerts panel)
 ```
 
-## Как запустить
-
-### Шаг 1: Docker контейнеры
-
-```bash
-docker-compose up -d
-docker ps  # проверяем что все запустилось
-```
-
-Должны быть доступны:
-- Grafana: http://147.45.157.2:3000 ()
-- Prometheus: http://147.45.157.2:9090
-- Loki: http://147.45.157.2:3100
-
-Если порты другие - посмотри в docker-compose.yml
-
-### Шаг 2: Настройка .env
-
-```bash
-cp env.example .env
-# отредактируй файл и добавь свои ключи
-```
-
-Минимум что нужно:
-- `DEEPSEEK_API_KEY` - получи ключ в TimeWeb Cloud
-- `TELEGRAM_BOT_TOKEN` - получи токен от @BotFather
-
-### Шаг 3: Запуск MCP и бота
-
-Вариант 1 - все вместе:
-```bash
-cd mcp-server
-pip install -r requirements.txt  # если еще не ставил
-cd ..
-python scripts/start_all.py
-```
-
-Вариант 2 - по отдельности (удобнее для отладки):
-
-В одном терминале MCP сервер:
-```bash
-python mcp-server/server.py --transport http
-```
-
-В другом терминале бот:
-```bash
-python scripts/telegram_monitoring_bot.py
-```
-
-P.S. Возможно нужно будет установить зависимости если первый раз запускаешь
-
 ## Структура проекта
 
 ```
@@ -258,7 +207,6 @@ async def main():
 asyncio.run(main())
 ```
 
-Кстати, все функции async, не забывай await.
 
 ## Алерты
 
@@ -344,81 +292,8 @@ DEEPSEEK_TEMPERATURE=0.2       # более точные ответы
 
 Температура 0.2 - специально низкая чтобы ответы были стабильными и не "креативил". Для мониторинга это лучше.
 
-## Проблемы и решения
-
-**MCP сервер не запускается:**
-- Проверь .env файл - токены на месте?
-- Prometheus и Loki работают? (`docker ps`)
-- Смотри логи: `python mcp-server/server.py`
-
-**Telegram бот молчит:**
-- Проверь TELEGRAM_BOT_TOKEN в .env
-- MCP сервер запущен? Проверь `curl http://localhost:8000/health`
-- Логи бота покажут что не так
-
-**Метрики не приходят:**
-- Все Docker контейнеры работают? (`docker ps`)
-- Логи Prometheus: `docker logs prometheus`
-- IP адрес в env правильный? Должен быть 147.45.157.2 (или другой твой)
-
-**Grafana пусто:**
-- В Grafana UI проверь datasources
-- Prometheus: http://prometheus:9090
-- Loki: http://loki:3100
-
-P.S. Если порты не совпадают - проверь docker-compose.yml
-
-## Как добавить новый MCP tool
-
-Если нужно больше функционала:
-
-1. Открой `mcp-server/server.py`
-2. В `list_tools()` добавь Tool
-3. В `call_tool()` добавь elif для нового tool
-4. Напиши функцию `async def tool_my_new_tool()`
-
-Простой пример:
-```python
-# 1. В list_tools() добавить
-Tool(name="get_something", description="...", inputSchema={})
-
-# 2. В call_tool() добавить
-elif name == "get_something":
-    return await tool_get_something()
-
-# 3. Реализовать
-async def tool_get_something() -> list[TextContent]:
-    # собрать данные из prometheus_client
-    data = await prometheus_client.get_current_cpu()
-    
-    # можно отправить на анализ через LLM
-    analysis = await llm_client.analyze_metrics(data, context="...")
-    
-    return [TextContent(type="text", text=result)]
-```
-
-Смотри существующие tools (`get_cpu_usage`, `get_memory_status`) для примеров.
 
 
-
-## Что еще в планах
-
-- [ ] **Экспорт отчётов через бота** (PDF/Excel)
-  - Генерация PDF отчётов с метриками и графиками
-  - Экспорт данных в Excel таблицы
-  - Интеграция с Grafana Renderer для экспорта дашбордов
-- [ ] WebUI для просмотра метрик (без Telegram)
-- [ ] Экспорт метрик наружу (в другой Prometheus)
-- [ ] Поддержка нескольких серверов
-- [ ] Slack бот вместо/в дополнение к Telegram
-- [ ] Email уведомления при критических алертах
-- [ ] Исторические отчёты за период (день/неделя/месяц)
-
-## Заметки
-
-В Grafana уже есть готовые дашборды в `dashboards/exported/`, их можно импортировать.
-
-Данные на сервере `147.45.157.2`, если что поменяй на свой IP в docker-compose.yml и .env.
 
 ## Лицензия
 
